@@ -30,6 +30,14 @@ def buscaLateralVetor(lado, pos, vet, block):
     return pos
 
 
+def calculaAlturaMedia(vetor, L):
+    h = 0
+    for i in range(len(vetor)):
+        h += i
+
+    return h/L
+
+
 def buscaLateral(lado, pos, linha, block):
     if lado:  # direita
         if pos < len(linha) - 1:
