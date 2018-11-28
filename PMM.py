@@ -3,6 +3,33 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def buscaLateralVetor(lado, pos, vet, block):
+    if lado:  # direita
+        if pos < len(vet) - 1:
+            if vet[pos] > vet[pos + 1]:
+                pos += 1
+            elif block:
+                pos = buscaLateral(0, pos, vet, 0)
+        else:
+            if vet[pos] > vet[0]:
+                pos = 0
+            elif block:
+                pos = buscaLateral(0, pos, vet, 0)
+    else:  # esquerda
+        if pos > 0:
+            if vet[pos] > vet[pos - 1]:
+                pos -= 1
+            elif block:
+                pos = buscaLateral(1, pos, vet, 0)
+        else:
+            if vet[pos] > vet[len(vet) - 1]:
+                pos = len(vet) - 1
+            elif block:
+                pos = buscaLateral(1, pos, vet, 0)
+
+    return pos
+
+
 def buscaLateral(lado, pos, linha, block):
     if lado:  # direita
         if pos < len(linha) - 1:
