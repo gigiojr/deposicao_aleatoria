@@ -30,12 +30,12 @@ def buscaLateralVetor(lado, pos, vet, block):
     return pos
 
 
-def calculaAlturaMedia(vetor, L):
-    h = 0
-    for i in range(len(vetor)):
-        h += i
-
-    return h/L
+def calculaRugosidade(vetor, L):
+    hMedia = np.mean(vetor)
+    somatorio = 0
+    for i in range(vetor):
+        somatorio += (i - hMedia) ** 2
+    return (somatorio / L) ** (1/2)
 
 
 def buscaLateral(lado, pos, linha, block):
