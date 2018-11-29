@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 function busca_lateral(vtr, idx) {
     if (idx === vtr.length) {
         // avaliar apenas esquerda
@@ -52,15 +54,26 @@ function calcula_rugosidade(vetor, L) {
 function make_desposition_relaxation(l, t) {
     let w = [];
     let vtr = new Array(l).fill(0);
-    for (let i = 0; i < t; i++){
-        for (let j = 0; j < l; j++) {
-            let random_index = Math.floor(Math.random() * (l - 1));
-            let idx = busca_lateral(vtr, random_index);
-            vtr[idx] += 1
+    for (let amostras = 0; amostras <= 10; amostras++) {
+        for (let i = 0; i < t; i++) {
+            for (let j = 0; j < l; j++) {
+                let random_index = Math.floor(Math.random() * (l - 1));
+                let idx = busca_lateral(vtr, random_index);
+                vtr[idx] += 1
+            }
+            w.push(calcula_rugosidade(vtr, l));
         }
-        w.push(calcula_rugosidade(vtr, l));
+        saveFile("file_" + amostras + ".csv", w);
     }
-    console.log(w);
+    return w;
 }
 
-make_desposition_relaxation(200, 100);
+function saveFile(name, vetor) {
+    fs.writeFile(name, vetor, function (err) {
+        if (err) {
+            return console.log(err);
+        }
+    });
+}
+
+make_desposition_relaxation(200, Math.pow(10, 6));
