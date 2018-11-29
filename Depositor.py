@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 from threading import Thread
 
+
 class Depositor(Thread):
     def __init__(self):
         self.l = [200, 400, 800, 1600]
@@ -20,13 +21,21 @@ class Depositor(Thread):
         if idx == (len(vtr)-1):
             #avaliar apenas esquerda
             if vtr[idx] > vtr[idx-1]:
-                return self.busca_lateral(vtr, idx-1)
+                return idx - 1
+                # return self.busca_lateral(vtr, idx-1)
+            elif vtr[idx] > vtr[0]:
+                return 0
+                # return self.busca_lateral(vtr, 0)
             else:
                 return idx
-        elif  idx == 0:
+        elif idx == 0:
             #avaliar apenas direita
             if vtr[idx] > vtr[idx+1]:
-                return self.busca_lateral(vtr, idx+1)
+                #return self.busca_lateral(vtr, idx+1)
+                return idx + 1
+            elif vtr[idx] > vtr[len(vtr) - 1]:
+                # return self.busca_lateral(vtr, len(vtr) - 1)
+                return len(vtr) - 1
             else:
                 return idx
         else:
@@ -43,7 +52,8 @@ class Depositor(Thread):
                 idx_choose = idx_right if random.randint(0, 1) else idx_left
 
             if vtr[idx_choose] < vtr[idx]:
-                return self.busca_lateral(vtr, idx_choose)
+                # return self.busca_lateral(vtr, idx_choose)
+                return idx_choose
             else:
                 return idx
 
@@ -74,25 +84,37 @@ class Depositor(Thread):
         " l          -- Locais para deposição
         " t          -- Count of number times step
         """
-        w = []
-        data = []
-        vtr = np.zeros(l, int)
+
+        # data = []
+        wMatriz = []
+        for amostras in range(100):
+            w = []
+            vtr = np.zeros(l, int)
+            for i in range(t):
+                for j in range(l):
+                    random_index = random.randint(0, l - 1)
+                    idx = self.busca_lateral(vtr, random_index)
+                    vtr[idx] += 1
+                wlocal = self.calcula_rugosidade(vtr, l)
+                w.append(wlocal)
+
+            wMatriz.append(w)
+
+        wMedia = []
         for i in range(t):
-            for j in range(l):
-                random_index = random.randint(0, l - 1)
-                idx = self.busca_lateral(vtr, random_index)
-                vtr[idx] += 1
-                data.append(vtr)
-            w.append(self.calcula_rugosidade(vtr, l))
-        self.save_file(data, l)
-        return w
+            soma = 0
+            for w in wMatriz:
+                soma += w[i]
+            wMedia.append(soma / len(wMatriz))
+
+        return wMedia
 
     def calcula_rugosidade(self, vetor, L):
         hMedia = np.mean(vetor)
         somatorio = 0
         for i in vetor:
             somatorio += (i - hMedia) ** 2
-        return math.sqrt(somatorio / L)
+        return np.sqrt(somatorio / L)
 
     def run(self):
         a = datetime.now()
