@@ -52,9 +52,10 @@ function calcula_rugosidade(vetor, L) {
 }
 
 function make_desposition_relaxation(l, t) {
-    let w = [];
-    let vtr = new Array(l).fill(0);
+    rg = []
     for (let amostras = 0; amostras <= 10; amostras++) {
+        let w = [];
+        let vtr = new Array(l).fill(0);
         for (let i = 0; i < t; i++) {
             for (let j = 0; j < l; j++) {
                 let random_index = Math.floor(Math.random() * (l - 1));
@@ -63,9 +64,10 @@ function make_desposition_relaxation(l, t) {
             }
             w.push(calcula_rugosidade(vtr, l));
         }
+        rg.push(w)
         saveFile("file_" + amostras + ".csv", w);
     }
-    return w;
+    return rg;
 }
 
 function saveFile(name, vetor) {
