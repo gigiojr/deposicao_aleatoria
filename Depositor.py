@@ -1,21 +1,33 @@
 import random
 import math
+import time
+import logging
 import numpy as np
 from datetime import datetime
-from threading import Thread
+import threading
 
-
-class Depositor(Thread):
+class ThreadPool(object):
     def __init__(self):
-        self.l = [200, 400, 800, 1600]
-        self.t = 10 ** 6
+        super(ThreadPool, self).__init__()
+        self.active = []
+        self.lock = threading.Lock()
+    def makeActive(self, name):
+        with self.lock:
+            self.active.append(name)
+            logging.debug('Running: %s', self.active)
+    def makeInactive(self, name):
+        with self.lock:
+            self.active.remove(name)
+            logging.debug('Running: %s', self.active)
 
-    def save_file(self, data, l):
-        with open("data_"+str(l)+".txt", 'w+') as fp:
-            for row in data:
-                str_data = map(str, row)
-                fp.write(";".join(str_data))
-            fp.close()
+class Depositor(threading.Thread):
+    def __init__(self, l, t, i, s, pool):
+        threading.Thread.__init__(self, name="Experimento %s Amostra %s" %(str(l), str(i)))
+        self.name = "Experimento %s Amostra %s" %(str(l), str(i))
+        self.s = s
+        self.pool = pool
+        self.l = l
+        self.t = t
 
     def busca_lateral(self, vtr, idx):
         if idx == (len(vtr)-1):
@@ -66,14 +78,14 @@ class Depositor(Thread):
         " l          -- Locais para deposição
         " t          -- Count of number times step
         """
-        w = []
+        roughnesses = []
         vet = np.zeros(l, int)
         for i in range(t):
             for j in range(l):
                 random_value = random.randint(0, l - 1)
                 vet[random_value] += 1
-            w.append(self.calcula_rugosidade(vet, l))
-        return w
+            roughnesses.append(self.calcula_rugosidade(vet, l))
+        return roughnesses
 
     def make_desposition_relaxation(self, l, t):
         """ Make Random Deposition surface relaxation - Deposição Aleatória com Relaxamento Superficial
@@ -81,33 +93,18 @@ class Depositor(Thread):
         " Keyword arguments:
         "
         " max_height -- Altura máxima
-        " l          -- Locais para deposição
-        " t          -- Count of number times step
+        " l          -- Número de locais para deposição
+        " t          -- Quantidade de passos de tempo
         """
-
-        # data = []
-        wMatriz = []
-        for amostras in range(100):
-            w = []
-            vtr = np.zeros(l, int)
-            for i in range(t):
-                for j in range(l):
-                    random_index = random.randint(0, l - 1)
-                    idx = self.busca_lateral(vtr, random_index)
-                    vtr[idx] += 1
-                wlocal = self.calcula_rugosidade(vtr, l)
-                w.append(wlocal)
-
-            wMatriz.append(w)
-
-        wMedia = []
+        self.roughnesses = []
+        vtr = np.zeros(l, int)
         for i in range(t):
-            soma = 0
-            for w in wMatriz:
-                soma += w[i]
-            wMedia.append(soma / len(wMatriz))
-
-        return wMedia
+            for j in range(l):
+                random_index = random.randint(0, l - 1)
+                idx = self.busca_lateral(vtr, random_index)
+                vtr[idx] += 1
+            roughness = self.calcula_rugosidade(vtr, l)
+            self.roughnesses.append(roughness)
 
     def calcula_rugosidade(self, vetor, L):
         hMedia = np.mean(vetor)
@@ -117,22 +114,53 @@ class Depositor(Thread):
         return np.sqrt(somatorio / L)
 
     def run(self):
-        a = datetime.now()
-        self.vet_rd_200 = self.make_random_deposition_vet(200, 10 ** 6)
-        self.vet_rdsr_200 = self.make_DARS_vet(200, 10 ** 6)
-        self.vet_rd_400 = self.make_random_deposition_vet(400, 10 ** 6)
-        self.vet_rdsr_400 = self.make_DARS_vet(400, 10 ** 6)
-        self.vet_rd_800 = self.make_random_deposition_vet(800, 10 ** 6)
-        self.vet_rdsr_800 = self.make_DARS_vet(800, 10 ** 6)
-        self.vet_rd_1600 = self.make_random_deposition_vet(1600, 10 ** 6)
-        self.vet_rdsr_1600 = self.make_DARS_vet(1600, 10 ** 6)
-        b = datetime.now()
-        print(b-a)
-        print(self.vet_rd_200)
-        print(self.vet_rdsr_200)
-        print(self.vet_rd_400)
-        print(self.vet_rdsr_400)
-        print(self.vet_rd_800)
-        print(self.vet_rdsr_800)
-        print(self.vet_rd_1600)
-        print(self.vet_rdsr_1600)
+        with self.s:
+            print("Iniciando %s"%(self.name))
+            self.pool.makeActive(self.name)
+            a = datetime.now()
+            self.make_desposition_relaxation(self.l, self.t)
+            b = datetime.now()
+            print("Finalizando %s em %s"%(self.name,str(b-a)))
+            self.pool.makeInactive(self.name)
+
+class Executor:
+    def __init__(self, l, t, N):
+        self.l = l
+        self.t = t
+        self.N = N
+
+    def get_mean_experiment(self):
+        """ Repeat Experiments - Repetição de experimento
+        "
+        " Keyword arguments:
+        "
+        " N -- Número de vezes que será repetido
+        " l -- Número de locais para deposição
+        " t -- Quantidade de passos de tempo
+        """
+        pool = ThreadPool()
+        s = threading.Semaphore(15)
+        experiments = {}
+        for i in range(self.N):
+            experiments[i] = Depositor(self.l, self.t, i, s, pool)
+            experiments[i].start()
+
+        while True:
+            all_finish = True
+            for i in experiments.values():
+                if i.is_alive():
+                    all_finish = False
+            if all_finish:
+                break
+            time.sleep(60)
+
+        mtx = [e.roughnesses for e in experiments.values()]
+        mtx = np.array(mtx)
+        self.mean = [np.mean(mtx[:,i]) for i in range(mtx.shape[1])]
+        self.save_file(self.mean, self.l)
+        return True
+
+    def save_file(self, data, l):
+        with open("data_"+str(l)+".txt", 'w+') as fp:
+            fp.write(";".join(map(str, data)))
+            fp.close()
