@@ -139,7 +139,7 @@ class Executor:
         " t -- Quantidade de passos de tempo
         """
         pool = ThreadPool()
-        s = threading.Semaphore(15)
+        s = threading.Semaphore(100)
         experiments = {}
         for i in range(self.N):
             experiments[i] = Depositor(self.l, self.t, i, s, pool)
