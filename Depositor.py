@@ -70,14 +70,6 @@ class Depositor(threading.Thread):
                 return idx
 
     def make_random_deposition(self, l, t):
-        """ Make Random Deposition - Deposição Aleatória
-        "
-        " Keyword arguments:
-        "
-        " max_height -- Altura máxima
-        " l          -- Locais para deposição
-        " t          -- Count of number times step
-        """
         roughnesses = []
         vet = np.zeros(l, int)
         for i in range(t):
@@ -85,17 +77,10 @@ class Depositor(threading.Thread):
                 random_value = random.randint(0, l - 1)
                 vet[random_value] += 1
             roughnesses.append(self.calcula_rugosidade(vet, l))
+            print("%s rodando t=%s"%(self.name, i))
         return roughnesses
 
     def make_desposition_relaxation(self, l, t):
-        """ Make Random Deposition surface relaxation - Deposição Aleatória com Relaxamento Superficial
-        "
-        " Keyword arguments:
-        "
-        " max_height -- Altura máxima
-        " l          -- Número de locais para deposição
-        " t          -- Quantidade de passos de tempo
-        """
         self.roughnesses = []
         vtr = np.zeros(l, int)
         for i in range(t):
@@ -118,7 +103,8 @@ class Depositor(threading.Thread):
             print("Iniciando %s"%(self.name))
             self.pool.makeActive(self.name)
             a = datetime.now()
-            self.make_desposition_relaxation(self.l, self.t)
+            #self.make_desposition_relaxation(self.l, self.t)
+            self.make_random_deposition(self.l, self.t)
             b = datetime.now()
             print("Finalizando %s em %s"%(self.name,str(b-a)))
             self.pool.makeInactive(self.name)
@@ -130,14 +116,6 @@ class Executor:
         self.N = N
 
     def get_mean_experiment(self):
-        """ Repeat Experiments - Repetição de experimento
-        "
-        " Keyword arguments:
-        "
-        " N -- Número de vezes que será repetido
-        " l -- Número de locais para deposição
-        " t -- Quantidade de passos de tempo
-        """
         pool = ThreadPool()
         s = threading.Semaphore(100)
         experiments = {}
@@ -161,6 +139,6 @@ class Executor:
         return True
 
     def save_file(self, data, l):
-        with open("data_"+str(l)+".txt", 'w+') as fp:
+        with open("data_RD_"+str(l)+".txt", 'w+') as fp:
             fp.write(";".join(map(str, data)))
             fp.close()
