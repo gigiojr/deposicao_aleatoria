@@ -6,9 +6,9 @@ import time
 def main():
     # l = [200, 400, 800, 1600]
     l = [200, 400]
-    for i in l:
-        e = Executor(i, 10**6, 100)
-        e.get_mean_experiment()
+    i=400
+    e = Executor(i, 10**6, 100)
+    e.get_mean_experiment()
     # threads = [Depositor(i) for i in l]
     # [thread.start() for thread in threads]
     #mtx_deposition = [a.make_random_deposition( l, a.t) for l in a.l]

@@ -92,11 +92,10 @@ class Depositor(threading.Thread):
             self.roughnesses.append(roughness)
 
     def calcula_rugosidade(self, vetor, L):
-        hMedia = np.mean(vetor)
-        somatorio = 0
-        for i in vetor:
-            somatorio += (i - hMedia) ** 2
-        return np.sqrt(somatorio / L)
+        vtr = np.array(vetor)
+        mean = np.mean(vetor)
+        vtr = (vtr-mean)**2
+        return np.sqrt(vtr / L)
 
     def run(self):
         with self.s:
@@ -104,7 +103,7 @@ class Depositor(threading.Thread):
             self.pool.makeActive(self.name)
             a = datetime.now()
             #self.make_desposition_relaxation(self.l, self.t)
-            self.make_random_deposition(self.l, self.t)
+            self.make_desposition_relaxation(self.l, self.t)
             b = datetime.now()
             print("Finalizando %s em %s"%(self.name,str(b-a)))
             self.pool.makeInactive(self.name)
@@ -139,6 +138,6 @@ class Executor:
         return True
 
     def save_file(self, data, l):
-        with open("data_RD_"+str(l)+".txt", 'w+') as fp:
+        with open("data_RDRS_"+str(l)+".txt", 'w+') as fp:
             fp.write(";".join(map(str, data)))
             fp.close()
