@@ -30,44 +30,50 @@ class Depositor(threading.Thread):
         self.t = t
 
     def busca_lateral(self, vtr, idx):
-        if idx == (len(vtr)-1):
-            #avaliar apenas esquerda
-            if vtr[idx] > vtr[idx-1]:
-                return idx - 1
-                # return self.busca_lateral(vtr, idx-1)
-            elif vtr[idx] > vtr[0]:
-                return 0
-                # return self.busca_lateral(vtr, 0)
-            else:
-                return idx
-        elif idx == 0:
-            #avaliar apenas direita
-            if vtr[idx] > vtr[idx+1]:
-                #return self.busca_lateral(vtr, idx+1)
-                return idx + 1
-            elif vtr[idx] > vtr[len(vtr) - 1]:
-                # return self.busca_lateral(vtr, len(vtr) - 1)
-                return len(vtr) - 1
-            else:
-                return idx
-        else:
-            #avaliar os dois lados
-            idx_left = idx-1
-            idx_right = idx+1
-            if vtr[idx_right] < vtr[idx_left]:
-                #testar o atual com a direita
-                idx_choose = idx_right
-            elif vtr[idx_left] < vtr[idx_right]:
-                #testar o atual com a esquerda
-                idx_choose = idx_left
-            else:
-                idx_choose = idx_right if random.randint(0, 1) else idx_left
+        l = len(vtr)
+        idx_left = (idx+l-1)%l
+        idx_right = (idx+1)%l
+        idx_choose = idx_right if vtr[idx_right] < vtr[idx_left] else idx_left
+        return idx_choose if idx_choose < idx else idx
 
-            if vtr[idx_choose] < vtr[idx]:
-                # return self.busca_lateral(vtr, idx_choose)
-                return idx_choose
-            else:
-                return idx
+        # if idx == (len(vtr)-1):
+        #     #avaliar apenas esquerda
+        #     if vtr[idx] > vtr[idx-1]:
+        #         return idx - 1
+        #         # return self.busca_lateral(vtr, idx-1)
+        #     elif vtr[idx] > vtr[0]:
+        #         return 0
+        #         # return self.busca_lateral(vtr, 0)
+        #     else:
+        #         return idx
+        # elif idx == 0:
+        #     #avaliar apenas direita
+        #     if vtr[idx] > vtr[idx+1]:
+        #         #return self.busca_lateral(vtr, idx+1)
+        #         return idx + 1
+        #     elif vtr[idx] > vtr[len(vtr) - 1]:
+        #         # return self.busca_lateral(vtr, len(vtr) - 1)
+        #         return len(vtr) - 1
+        #     else:
+        #         return idx
+        # else:
+        #     #avaliar os dois lados
+        #     idx_left = idx-1
+        #     idx_right = idx+1
+        #     if vtr[idx_right] < vtr[idx_left]:
+        #         #testar o atual com a direita
+        #         idx_choose = idx_right
+        #     elif vtr[idx_left] < vtr[idx_right]:
+        #         #testar o atual com a esquerda
+        #         idx_choose = idx_left
+        #     else:
+        #         idx_choose = idx_right if random.randint(0, 1) else idx_left
+
+        #     if vtr[idx_choose] < vtr[idx]:
+        #         # return self.busca_lateral(vtr, idx_choose)
+        #         return idx_choose
+        #     else:
+        #         return idx
 
     def make_random_deposition(self, l, t):
         roughnesses = []
@@ -103,8 +109,8 @@ class Depositor(threading.Thread):
             print("Iniciando %s"%(self.name))
             self.pool.makeActive(self.name)
             a = datetime.now()
-            #self.make_desposition_relaxation(self.l, self.t)
-            self.make_random_deposition(self.l, self.t)
+            self.make_desposition_relaxation(self.l, self.t)
+            #self.make_random_deposition(self.l, self.t)
             b = datetime.now()
             print("Finalizando %s em %s"%(self.name,str(b-a)))
             self.pool.makeInactive(self.name)
@@ -139,6 +145,6 @@ class Executor:
         return True
 
     def save_file(self, data, l):
-        with open("data_RD_"+str(l)+".txt", 'w+') as fp:
+        with open("data_RD_T2_"+str(l)+".txt", 'w+') as fp:
             fp.write(";".join(map(str, data)))
             fp.close()
