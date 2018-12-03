@@ -3,6 +3,7 @@ import math
 import time
 import logging
 import numpy as np
+import gc
 from datetime import datetime
 import threading
 
@@ -28,6 +29,11 @@ class Depositor(threading.Thread):
         self.pool = pool
         self.l = l
         self.t = t
+
+    def save_file(self, data, name):
+        with open("data_"+name+".txt", 'w+') as fp:
+            fp.write(";".join(map(str, data)))
+            fp.close()
 
     def busca_lateral(self, vtr, idx):
         if idx == (len(vtr)-1):
@@ -70,14 +76,19 @@ class Depositor(threading.Thread):
                 return idx
 
     def make_random_deposition(self, l, t):
-        roughnesses = []
+        mtx = []
         vet = np.zeros(l, int)
+        vet_1 = np.zeros(l, int)+1
         for i in range(t):
-            for j in range(l):
-                random_value = random.randint(0, l - 1)
-                vet[random_value] += 1
-            roughnesses.append(self.calcula_rugosidade(vet, l))
             print("%s rodando t=%s"%(self.name, i))
+            random_value = np.random.randint(l, size=l)
+            np.add.at(vet,random_value,vet_1)
+            mtx.append(vet)
+        del vet
+        del vet_1
+        roughnesses=[self.calcula_rugosidade(vet, l) for vet in mtx]
+        del mtx
+        gc.collect()
         return roughnesses
 
     def make_desposition_relaxation(self, l, t):
@@ -91,9 +102,9 @@ class Depositor(threading.Thread):
             roughness = self.calcula_rugosidade(vtr, l)
             self.roughnesses.append(roughness)
 
-    def calcula_rugosidade(self, vetor, L):
-        vtr = np.array(vetor)
-        mean = np.mean(vetor)
+    def calcula_rugosidade(self, vtr, L):
+        vtr = np.array(vtr)
+        mean = np.mean(vtr)
         vtr = (vtr-mean)**2
         return np.sqrt(vtr / L)
 
@@ -103,7 +114,10 @@ class Depositor(threading.Thread):
             self.pool.makeActive(self.name)
             a = datetime.now()
             #self.make_desposition_relaxation(self.l, self.t)
-            self.make_desposition_relaxation(self.l, self.t)
+            self.roughnesses = self.make_random_deposition(self.l, self.t)
+            gc.collect()
+            self.save_file(self.roughnesses, self.name)
+            gc.collect()
             b = datetime.now()
             print("Finalizando %s em %s"%(self.name,str(b-a)))
             self.pool.makeInactive(self.name)
@@ -121,16 +135,10 @@ class Executor:
         for i in range(self.N):
             experiments[i] = Depositor(self.l, self.t, i, s, pool)
             experiments[i].start()
-
-        while True:
-            all_finish = True
-            for i in experiments.values():
-                if i.is_alive():
-                    all_finish = False
-            if all_finish:
-                break
-            time.sleep(60)
-
+        gc.collect()
+        for i in experiments:
+            i.join()
+        gc.collect()
         mtx = [e.roughnesses for e in experiments.values()]
         mtx = np.array(mtx)
         self.mean = [np.mean(mtx[:,i]) for i in range(mtx.shape[1])]
