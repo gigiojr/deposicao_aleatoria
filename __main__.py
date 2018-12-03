@@ -2,13 +2,14 @@ from Depositor import Depositor, Executor
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import gc
 
 def main():
     # l = [200, 400, 800, 1600]
-    l = [200, 400]
-    i=200
-    e = Executor(i, 10**6, 100)
-    e.get_mean_experiment()
+    for i in range(10):  
+        e = Executor(800, 10**6, 10)
+        e.get_mean_experiment(i)
+        gc.collect()
     # threads = [Depositor(i) for i in l]
     # [thread.start() for thread in threads]
     #mtx_deposition = [a.make_random_deposition( l, a.t) for l in a.l]

@@ -4,6 +4,7 @@ import time
 import logging
 import numpy as np
 import gc
+import os
 from datetime import datetime
 import threading
 
@@ -36,51 +37,31 @@ class Depositor(threading.Thread):
             fp.close()
 
     def busca_lateral(self, vtr, idx):
-        if idx == (len(vtr)-1):
-            #avaliar apenas esquerda
-            if vtr[idx] > vtr[idx-1]:
-                return idx - 1
-                # return self.busca_lateral(vtr, idx-1)
-            elif vtr[idx] > vtr[0]:
-                return 0
-                # return self.busca_lateral(vtr, 0)
-            else:
-                return idx
-        elif idx == 0:
-            #avaliar apenas direita
-            if vtr[idx] > vtr[idx+1]:
-                #return self.busca_lateral(vtr, idx+1)
-                return idx + 1
-            elif vtr[idx] > vtr[len(vtr) - 1]:
-                # return self.busca_lateral(vtr, len(vtr) - 1)
-                return len(vtr) - 1
-            else:
-                return idx
-        else:
-            #avaliar os dois lados
-            idx_left = idx-1
-            idx_right = idx+1
-            if vtr[idx_right] < vtr[idx_left]:
-                #testar o atual com a direita
-                idx_choose = idx_right
-            elif vtr[idx_left] < vtr[idx_right]:
-                #testar o atual com a esquerda
-                idx_choose = idx_left
-            else:
-                idx_choose = idx_right if random.randint(0, 1) else idx_left
+        l = len(vtr)
+        idx_left = (idx+l-1)%l
+        idx_right = (idx+1)%l
+        idx_choose = idx_right if vtr[idx_right] < vtr[idx_left] else idx_left
+        return idx_choose if vtr[idx_choose] < vtr[idx] else idx
+        # if vtr[idx_right] < vtr[idx_left]:
+        #     #testar o atual com a direita
+        #     idx_choose = idx_right
+        # elif vtr[idx_left] < vtr[idx_right]:
+        #     #testar o atual com a esquerda
+        #     idx_choose = idx_left
+        # else:
+        #     idx_choose = idx_right if random.randint(0, 1) else idx_left
+        # if vtr[idx_choose] < vtr[idx]:
+        #     # return self.busca_lateral(vtr, idx_choose)
+        #     return idx_choose
+        # else:
+        #     return idx
 
-            if vtr[idx_choose] < vtr[idx]:
-                # return self.busca_lateral(vtr, idx_choose)
-                return idx_choose
-            else:
-                return idx
 
     def make_random_deposition(self, l, t):
         mtx = []
         vet = np.zeros(l, int)
         vet_1 = np.zeros(l, int)+1
         for i in range(t):
-            print("%s rodando t=%s"%(self.name, i))
             random_value = np.random.randint(l, size=l)
             np.add.at(vet,random_value,vet_1)
             mtx.append(vet)
@@ -100,6 +81,7 @@ class Depositor(threading.Thread):
                 idx = self.busca_lateral(vtr, random_index)
                 vtr[idx] += 1
             roughness = self.calcula_rugosidade(vtr, l)
+            print("%s passo %s"%(self.name,i))
             self.roughnesses.append(roughness)
 
     def calcula_rugosidade(self, vtr, L):
@@ -113,10 +95,10 @@ class Depositor(threading.Thread):
             print("Iniciando %s"%(self.name))
             self.pool.makeActive(self.name)
             a = datetime.now()
-            #self.make_desposition_relaxation(self.l, self.t)
-            self.roughnesses = self.make_random_deposition(self.l, self.t)
-            gc.collect()
-            self.save_file(self.roughnesses, self.name)
+            self.make_desposition_relaxation(self.l, self.t)
+            #self.roughnesses = self.make_random_deposition(self.l, self.t)
+            # gc.collect()
+            # self.save_file(self.roughnesses, self.name)
             gc.collect()
             b = datetime.now()
             print("Finalizando %s em %s"%(self.name,str(b-a)))
@@ -128,7 +110,7 @@ class Executor:
         self.t = t
         self.N = N
 
-    def get_mean_experiment(self):
+    def get_mean_experiment(self, process_part=0):
         pool = ThreadPool()
         s = threading.Semaphore(100)
         experiments = {}
@@ -136,16 +118,21 @@ class Executor:
             experiments[i] = Depositor(self.l, self.t, i, s, pool)
             experiments[i].start()
         gc.collect()
-        for i in experiments:
-            i.join()
+        for e in experiments.values():
+            e.join()
         gc.collect()
+        print("Pegando a matriz")
         mtx = [e.roughnesses for e in experiments.values()]
+        print("Transformando a matriz")
         mtx = np.array(mtx)
+        print("Média da matriz")
         self.mean = [np.mean(mtx[:,i]) for i in range(mtx.shape[1])]
-        self.save_file(self.mean, self.l)
+        print("Salvando arquivo final")
+        self.save_file(self.mean, self.l, process_part)
         return True
 
-    def save_file(self, data, l):
-        with open("data_RDRS_"+str(l)+".txt", 'w+') as fp:
+    def save_file(self, data, l, process_part):
+        name = "data%sdata_RDSR_%s_%s.txt"%(os.sep, str(l), str(process_part))
+        with open(name, 'w+') as fp:
             fp.write(";".join(map(str, data)))
             fp.close()
